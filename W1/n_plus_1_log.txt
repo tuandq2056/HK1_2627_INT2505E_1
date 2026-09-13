@@ -1,0 +1,65 @@
+A bad API was called and a n+1 problem was detected.
+2026-09-13 16:57:46,208 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-09-13 16:57:46,210 INFO sqlalchemy.engine.Engine SELECT "order".id AS order_id, "order".book_id AS order_book_id, "order".quantity AS order_quantity 
+FROM "order"
+2026-09-13 16:57:46,210 INFO sqlalchemy.engine.Engine [generated in 0.00014s] ()
+/home/tuanlala/INT_3505E_1/W1/n_plus_1.py:67: LegacyAPIWarning: The Query.get() method is considered legacy as of the 1.x series of SQLAlchemy and becomes a legacy construct in 2.0. The method is now available as Session.get() (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+  book = Book.query.get(order.book_id)  # This will cause an N+1 problem
+2026-09-13 16:57:46,213 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,213 INFO sqlalchemy.engine.Engine [generated in 0.00017s] (1,)
+2026-09-13 16:57:46,214 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,214 INFO sqlalchemy.engine.Engine [cached since 0.001392s ago] (2,)
+2026-09-13 16:57:46,215 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,215 INFO sqlalchemy.engine.Engine [cached since 0.002318s ago] (1,)
+2026-09-13 16:57:46,215 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,215 INFO sqlalchemy.engine.Engine [cached since 0.002942s ago] (2,)
+2026-09-13 16:57:46,216 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,216 INFO sqlalchemy.engine.Engine [cached since 0.003296s ago] (1,)
+2026-09-13 16:57:46,216 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,216 INFO sqlalchemy.engine.Engine [cached since 0.003744s ago] (2,)
+2026-09-13 16:57:46,217 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,217 INFO sqlalchemy.engine.Engine [cached since 0.004167s ago] (1,)
+2026-09-13 16:57:46,217 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,217 INFO sqlalchemy.engine.Engine [cached since 0.004499s ago] (2,)
+2026-09-13 16:57:46,217 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,217 INFO sqlalchemy.engine.Engine [cached since 0.004825s ago] (1,)
+2026-09-13 16:57:46,218 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,218 INFO sqlalchemy.engine.Engine [cached since 0.005141s ago] (2,)
+2026-09-13 16:57:46,218 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,218 INFO sqlalchemy.engine.Engine [cached since 0.005446s ago] (1,)
+2026-09-13 16:57:46,218 INFO sqlalchemy.engine.Engine SELECT book.id AS book_id, book.title AS book_title, book.author AS book_author, book.year AS book_year 
+FROM book 
+WHERE book.id = ?
+2026-09-13 16:57:46,218 INFO sqlalchemy.engine.Engine [cached since 0.005787s ago] (2,)
+2026-09-13 16:57:46,219 INFO sqlalchemy.engine.Engine ROLLBACK
+
+
+
+A good API was called and the N+1 problem was avoided.
+2026-09-13 16:57:48,805 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-09-13 16:57:48,808 INFO sqlalchemy.engine.Engine SELECT "order".id AS order_id, "order".book_id AS order_book_id, "order".quantity AS order_quantity, book_1.id AS book_1_id, book_1.title AS book_1_title, book_1.author AS book_1_author, book_1.year AS book_1_year 
+FROM "order" LEFT OUTER JOIN book AS book_1 ON book_1.id = "order".book_id
+2026-09-13 16:57:48,808 INFO sqlalchemy.engine.Engine [generated in 0.00017s] ()
+2026-09-13 16:57:48,809 INFO sqlalchemy.engine.Engine ROLLBACK
