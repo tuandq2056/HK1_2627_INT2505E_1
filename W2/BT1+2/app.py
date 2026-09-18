@@ -1,31 +1,77 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 from uuid import uuid4
 
 app = Flask(__name__)
+DEFAULT_SIZE = 20
+MAX_SIZE = 100
 
-books = []
-
-@app.get("/all_books")
-def get_all_books():
-    return jsonify({"data": books, "length": len(books)}), 200
-
-@app.get("/books")
+books = [
+    {
+        "id": i, 
+        "title": f"Clean Code Phần {i}" if i % 2 != 0 else f"Clean Architecture Phần {i}", 
+        "author": "Robert C. Martin" if i % 2 != 0 else "Orwell", 
+        "published_year": 2000 + i
+    } 
+    for i in range(1, 26)
+]
+@app.get("/books", strict_slashes =False)
 def list_books():
-    limit = int(request.args.get("limit", 20))
-    offset = int(request.args.get("offset", 0))
-    q = request.args.get("q", "").strip().lower()
-    sort = request.args.get("sort")
-    
-    items = books
-    if q:
-        items = [b for b in books if q in b["title"].lower()]
-        
-    if sort == "title":
-        items = sorted(items, key=lambda x: x["title"])
-        
-    items = items[offset : offset + limit]
+    try:
+        page = int(request.args.get("page", 1))
+        size = int(request.args.get("size", DEFAULT_SIZE))
+    except ValueError:
+        return jsonify(error="page and size must be int"), 400
+    page = max(page, 1)
+    size = max(min(size, MAX_SIZE), 1)
 
-    return jsonify(items), 200
+
+    items = books
+    a = request.args.get("author")
+    if a: 
+        items = [b for b in items if b["author"].lower() == a.lower()]
+    q = (request.args.get("q") or "").strip().lower()
+    if q: 
+        items = [b for b in items if q in b["title"].lower() or q in b["author"].lower()]
+        
+    sort_by = request.args.get("sort")
+    order = request.args.get("order", "asc").lower()
+    if sort_by in ["title", "author", "published_year", "id"]:
+        reverse = (order == "desc")
+        items.sort(key=lambda x: x.get(sort_by), reverse=reverse)
+
+    total = len(items)
+    start = (page - 1) * size
+    end = start + size
+    items = items[start:end]
+    last = (total + size - 1) // size if size > 0 else 1
+    
+    def build_url(p): 
+        url = f"/books?page={p}&size={size}"
+        if a: url += f"&author={a}"
+        if q: url += f"&q={q}"
+        if sort_by: url += f"&sort={sort_by}"
+        if request.args.get("order"): url += f"&order={request.args.get('order')}"
+        return url
+        
+    links = {
+        "self": {"href": build_url(page)},
+        "first": {"href": build_url(1)},
+        "last": {"href": build_url(max(last, 1))}
+    }
+    if page > 1: 
+        links["prev"] = {"href": build_url(page - 1)}
+    if end < total: 
+        links["next"] = {"href": build_url(page + 1)}
+    
+    body = {
+        "data": items,
+        "pagination": {"page": page, "size": size, "total": total, "total_pages": max(last, 1)},
+        "_links": links
+    }
+    
+    resp = make_response(jsonify(body), 200)
+    resp.headers["Cache-Control"] = "public, max-age=30"
+    return resp
 
 @app.get('/books/<int:book_id>')
 def get_book_by_id(book_id):
