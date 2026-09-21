@@ -1,7 +1,7 @@
 ``` bash
 tuanlala@192:~/.gemini/antigravity/scratch/caldera-project$ curl -i -X DELETE \
   -H "Accept: application/vnd.github+json" \
-  -H "Authorization: Bearer ?" \
+ 
   https://api.github.com/repos/tuandq2056/audit-test-repo
 curl: (6) Could not resolve host:  
 curl: (6) Could not resolve host:  
