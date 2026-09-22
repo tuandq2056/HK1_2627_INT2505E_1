@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, make_response
 from db.connection import get_db
 from services import book_service
+from config import DEFAULT_SIZE
 
 # Khởi tạo Blueprint (như một mini-app chứa các API về books)
 books_bp = Blueprint("books", __name__)
@@ -11,7 +12,7 @@ def list_books():
     # 1. NHẬN ĐẦU VÀO TỪ CLIENT (HTTP)
     try:
         page = int(request.args.get("page", 1))
-        size = int(request.args.get("size", 20))
+        size = int(request.args.get("size", DEFAULT_SIZE))
     except ValueError:
         return jsonify({"error": "page và size phải là số nguyên"}), 400
         
