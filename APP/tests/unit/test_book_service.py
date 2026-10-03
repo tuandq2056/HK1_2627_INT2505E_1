@@ -31,7 +31,7 @@ def test_get_books_list_pagination_math():
     
     assert result["pagination"]["total"] == 25
     assert result["pagination"]["total_pages"] == 3
-    book_service.book_repo.find_books.assert_called_once_with(fake_db, "", [], "", 10, 0)
+    book_service.book_repo.find_books.assert_called_once_with(fake_db, {}, 10, 0)
 
 def test_get_books_list_negative_page():
     fake_db = MagicMock()
@@ -41,7 +41,7 @@ def test_get_books_list_negative_page():
     result = book_service.get_books_list(fake_db, page=-5, size=10, filters={})
     
     assert result["pagination"]["page"] == 1
-    book_service.book_repo.find_books.assert_called_once_with(fake_db, "", [], "", 10, 0)
+    book_service.book_repo.find_books.assert_called_once_with(fake_db, {}, 10, 0)
 
 def test_get_books_list_hateoas_links():
     fake_db = MagicMock()

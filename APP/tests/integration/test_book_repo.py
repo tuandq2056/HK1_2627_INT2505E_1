@@ -44,18 +44,14 @@ def test_find_book_by_id_fail(db):
 
 def test_find_books_filter_author(db):
     """Test lọc theo tác giả"""
-    where_clause = "WHERE LOWER(author) = ?"
-    params = ["robert c. martin"]
-    rows = book_repo.find_books(db, where_clause, params, "", 10, 0)
+    rows = book_repo.find_books(db, {"author": "Robert C. Martin"}, 10, 0)
     
     assert len(rows) == 2
     assert all(r["author"] == "Robert C. Martin" for r in rows)
 
 def test_find_books_search_title(db):
     """Test tìm kiếm (q) theo tiêu đề"""
-    where_clause = "WHERE LOWER(title) LIKE ?"
-    params = ["%clean%"]
-    rows = book_repo.find_books(db, where_clause, params, "", 10, 0)
+    rows = book_repo.find_books(db, {"q": "Clean"}, 10, 0)
     
     assert len(rows) == 2
     titles = [r["title"] for r in rows]
@@ -64,8 +60,7 @@ def test_find_books_search_title(db):
 
 def test_find_books_sorting(db):
     """Test sắp xếp giảm dần theo published_year"""
-    sort_query = "ORDER BY published_year DESC"
-    rows = book_repo.find_books(db, "", [], sort_query, 10, 0)
+    rows = book_repo.find_books(db, {}, 10, 0, sort_by="published_year", order="desc")
     
     assert len(rows) == 3
     assert rows[0]["title"] == "Clean Architecture" # 2017
@@ -74,11 +69,16 @@ def test_find_books_sorting(db):
 
 def test_count_books_with_filter(db):
     """Test đếm số lượng sách theo điều kiện (phục vụ tính total_pages)"""
-    where_clause = "WHERE LOWER(author) = ?"
-    params = ["george orwell"]
-    total = book_repo.count_books(db, where_clause, params)
+    total = book_repo.count_books(db, {"author": "George Orwell"})
     
     assert total == 1
+
+def test_find_books_invalid_sort_column_ignored(db):
+    """Cột sort không nằm trong whitelist sẽ bị bỏ qua (chống SQL Injection)"""
+    rows = book_repo.find_books(db, {}, 10, 0, sort_by="id; DROP TABLE books")
+    
+    assert len(rows) == 3
+    assert book_repo.count_books(db, {}) == 3
 
 
 # --- TEST CREATE ---

@@ -31,31 +31,17 @@ def get_books_list(db, page: int = 1, size: int = DEFAULT_SIZE, filters: dict = 
     if size <= 0 or size > MAX_SIZE:
         size = DEFAULT_SIZE
     
-    # 2. Xây dựng bộ lọc (Where clause)
-    # Để đơn giản trong bản refactor này, tôi giả lập sẵn logic xử lý filter từ args
-    conditions = []
-    params = []
-    
-    if filters:
-        if filters.get("author"):
-            conditions.append("LOWER(author) = ?")
-            params.append(filters["author"].lower())
-        if filters.get("q"):
-            conditions.append("(LOWER(title) LIKE ? OR LOWER(author) LIKE ?)")
-            params.extend([f"%{filters['q']}%", f"%{filters['q']}%"])
-            
-    where_clause = " WHERE " + " AND ".join(conditions) if conditions else ""
-    
-    # 3. Tính toán Pagination
-    total = book_repo.count_books(db, where_clause, params)
+    # 2. Tính toán Pagination
+    # (Việc dịch filters thành SQL là trách nhiệm của tầng Repo)
+    total = book_repo.count_books(db, filters)
     total_pages = max((total + size - 1) // size, 1) if size > 0 else 1
     offset = (page - 1) * size
     
-    # 4. Lấy data (Chưa gộp sort logic phức tạp vào để cho ngắn gọn)
-    rows = book_repo.find_books(db, where_clause, params, "", size, offset)
+    # 3. Lấy data
+    rows = book_repo.find_books(db, filters, size, offset)
     items = [{k: row[k] for k in row.keys() if k != "etag"} for row in rows]
     
-    # 5. Sinh HATEOAS Links
+    # 4. Sinh HATEOAS Links
     def build_url(p):
         return f"/books?page={p}&size={size}"
         
