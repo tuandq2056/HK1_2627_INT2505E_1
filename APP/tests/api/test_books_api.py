@@ -91,3 +91,83 @@ def test_book_api_full_flow(client):
     # Gọi lại thử xem còn không -> Phải báo 404
     resp7 = client.get("/books/1")
     assert resp7.status_code == 404
+
+
+def test_books_cursor_pagination(client):
+    """Test Cursor-based pagination: cursor, next_cursor, has_more, limit."""
+    # Tạo 5 cuốn sách
+    for i in range(1, 6):
+        client.post("/books", json={"title": f"Book {i}", "author": "Author A", "published_year": 2000 + i})
+
+    # Page 1: limit 2
+    r1 = client.get("/books?limit=2")
+    assert r1.status_code == 200
+    b1 = r1.get_json()
+    assert len(b1["data"]) == 2
+    assert b1["pagination"]["has_more"] is True
+    assert b1["pagination"]["next_cursor"] is not None
+    assert b1["data"][0]["title"] == "Book 1"
+    assert b1["data"][1]["title"] == "Book 2"
+
+    # Page 2: dùng next_cursor từ Page 1
+    cursor1 = b1["pagination"]["next_cursor"]
+    r2 = client.get(f"/books?limit=2&cursor={cursor1}")
+    assert r2.status_code == 200
+    b2 = r2.get_json()
+    assert len(b2["data"]) == 2
+    assert b2["pagination"]["has_more"] is True
+    assert b2["data"][0]["title"] == "Book 3"
+    assert b2["data"][1]["title"] == "Book 4"
+
+    # Page 3: lấy nốt trang cuối
+    cursor2 = b2["pagination"]["next_cursor"]
+    r3 = client.get(f"/books?limit=2&cursor={cursor2}")
+    assert r3.status_code == 200
+    b3 = r3.get_json()
+    assert len(b3["data"]) == 1
+    assert b3["pagination"]["has_more"] is False
+    assert b3["pagination"]["next_cursor"] is None
+    assert b3["data"][0]["title"] == "Book 5"
+
+
+def test_books_filter_and_sort(client):
+    """Test Filter (author, published_year) và Sort (sort, order)."""
+    client.post("/books", json={"title": "1984", "author": "Orwell", "published_year": 1949})
+    client.post("/books", json={"title": "Animal Farm", "author": "Orwell", "published_year": 1945})
+    client.post("/books", json={"title": "Clean Code", "author": "Martin", "published_year": 2008})
+
+    # Filter theo author
+    r_author = client.get("/books?author=Orwell")
+    assert r_author.status_code == 200
+    b_author = r_author.get_json()
+    assert len(b_author["data"]) == 2
+    assert all(b["author"] == "Orwell" for b in b_author["data"])
+
+    # Filter theo published_year
+    r_year = client.get("/books?published_year=2008")
+    assert r_year.status_code == 200
+    assert len(r_year.get_json()["data"]) == 1
+    assert r_year.get_json()["data"][0]["title"] == "Clean Code"
+
+    # Sort theo published_year DESC
+    r_sort = client.get("/books?author=Orwell&sort=-published_year")
+    assert r_sort.status_code == 200
+    items = r_sort.get_json()["data"]
+    assert items[0]["published_year"] == 1949
+    assert items[1]["published_year"] == 1945
+
+
+def test_books_sparse_fieldsets(client):
+    """Test Sparse Fieldsets: fields=id,title chỉ trả về 2 trường đó."""
+    client.post("/books", json={"title": "Refactoring", "author": "Fowler", "published_year": 1999})
+
+    resp = client.get("/books?fields=id,title")
+    assert resp.status_code == 200
+    data = resp.get_json()["data"]
+    assert len(data) >= 1
+    first = data[0]
+    assert "id" in first
+    assert "title" in first
+    assert "author" not in first
+    assert "published_year" not in first
+    assert "etag" not in first

@@ -21,7 +21,7 @@ def get_book_detail(db, book_id: int):
 
 from config import DEFAULT_SIZE, MAX_SIZE
 
-def get_books_list(db, page: int = 1, size: int = DEFAULT_SIZE, filters: dict = None):
+def get_books_list(db, page: int = 1, size: int = DEFAULT_SIZE, filters: dict = None, sort_by: str = "id", order: str = "asc", fields: list = None):
     """
     Lấy danh sách sách theo phân trang và filter.
     Trả về dictionary chứa data, pagination info và HATEOAS links.
@@ -32,15 +32,20 @@ def get_books_list(db, page: int = 1, size: int = DEFAULT_SIZE, filters: dict = 
         size = DEFAULT_SIZE
     
     # 2. Tính toán Pagination
-    # (Việc dịch filters thành SQL là trách nhiệm của tầng Repo)
     total = book_repo.count_books(db, filters)
     total_pages = max((total + size - 1) // size, 1) if size > 0 else 1
     offset = (page - 1) * size
     
     # 3. Lấy data
-    rows = book_repo.find_books(db, filters, size, offset)
-    items = [{k: row[k] for k in row.keys() if k != "etag"} for row in rows]
+    if (sort_by and sort_by != "id") or (order and order.lower() == "desc"):
+        rows = book_repo.find_books(db, filters, size, offset, sort_by=sort_by, order=order)
+    else:
+        rows = book_repo.find_books(db, filters, size, offset)
+    items = [_apply_fields(row, fields) for row in rows]
     
+    has_more = (offset + len(items) < total)
+    next_cursor = _encode_cursor(items[-1]["id"]) if (has_more and items) else None
+
     # 4. Sinh HATEOAS Links
     def build_url(p):
         return f"/books?page={p}&size={size}"
@@ -57,7 +62,85 @@ def get_books_list(db, page: int = 1, size: int = DEFAULT_SIZE, filters: dict = 
         
     return {
         "data": items,
-        "pagination": {"page": page, "size": size, "total": total, "total_pages": total_pages},
+        "pagination": {
+            "page": page,
+            "size": size,
+            "total": total,
+            "total_pages": total_pages,
+            "has_more": has_more,
+            "next_cursor": next_cursor
+        },
+        "_links": links
+    }
+
+import base64
+
+def _encode_cursor(book_id):
+    if book_id is None:
+        return None
+    return base64.urlsafe_b64encode(str(book_id).encode("utf-8")).decode("utf-8")
+
+def _decode_cursor(cursor_str):
+    if not cursor_str:
+        return None
+    try:
+        raw = base64.urlsafe_b64decode(cursor_str.encode("utf-8")).decode("utf-8")
+        return int(raw)
+    except Exception:
+        try:
+            return int(cursor_str)
+        except Exception:
+            return None
+
+def _apply_fields(item, fields):
+    clean = {k: item[k] for k in item.keys() if k != "etag"}
+    if not fields:
+        return clean
+    return {k: clean[k] for k in fields if k in clean}
+
+def get_books_cursor(db, limit=DEFAULT_SIZE, cursor=None, filters=None, sort_by="id", order="asc", fields=None):
+    """
+    Lấy danh sách sách theo Cursor-based pagination:
+    - cursor: Token định vị vị trí bản ghi cuối cùng
+    - filters: author, published_year, q
+    - sort: sort_by và order
+    - sparse fieldsets: danh sách các trường trong fields
+    """
+    limit = max(min(limit, MAX_SIZE), 1)
+    cursor_id = _decode_cursor(cursor)
+
+    rows = book_repo.find_books_cursor(db, filters, limit, cursor_id, sort_by, order)
+    has_more = len(rows) > limit
+    items_rows = rows[:limit] if has_more else rows
+
+    next_cursor = _encode_cursor(items_rows[-1]["id"]) if (has_more and items_rows) else None
+    total = book_repo.count_books(db, filters)
+
+    data = [_apply_fields(r, fields) for r in items_rows]
+
+    def build_url(c):
+        url = f"/books?limit={limit}"
+        if c: url += f"&cursor={c}"
+        if filters and filters.get("author"): url += f"&author={filters['author']}"
+        if filters and filters.get("published_year"): url += f"&published_year={filters['published_year']}"
+        if filters and filters.get("q"): url += f"&q={filters['q']}"
+        if sort_by and sort_by != "id": url += f"&sort={sort_by}"
+        if order and order.lower() != "asc": url += f"&order={order}"
+        if fields: url += f"&fields={','.join(fields)}"
+        return url
+
+    links = {"self": {"href": build_url(cursor)}}
+    if next_cursor:
+        links["next"] = {"href": build_url(next_cursor)}
+
+    return {
+        "data": data,
+        "pagination": {
+            "limit": limit,
+            "has_more": has_more,
+            "next_cursor": next_cursor,
+            "total": total
+        },
         "_links": links
     }
 

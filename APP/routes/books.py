@@ -8,47 +8,68 @@ books_bp = Blueprint("books", __name__)
 
 @books_bp.get("")
 def list_books():
-    """Lấy danh sách sách (có phân trang, filter)"""
-    # 1. NHẬN ĐẦU VÀO TỪ CLIENT (HTTP)
+    """Lấy danh sách sách (hỗ trợ cả cursor pagination và offset pagination)"""
+    cursor = request.args.get("cursor")
+    page_param = request.args.get("page")
+
     try:
-        page = int(request.args.get("page", 1))
-        size = int(request.args.get("size", DEFAULT_SIZE))
+        size = int(request.args.get("size") or request.args.get("limit") or DEFAULT_SIZE)
+        page = int(page_param) if page_param is not None else 1
     except ValueError:
         return jsonify({"error": "page và size phải là số nguyên"}), 400
-        
+
     filters = {
         "author": request.args.get("author"),
+        "published_year": request.args.get("published_year"),
         "q": request.args.get("q")
     }
-    
-    # 2. GỌI SERVICE (Nghiệp vụ)
+
+    sort_param = request.args.get("sort")
+    order = request.args.get("order", "asc")
+    if sort_param and sort_param.startswith("-"):
+        sort_by = sort_param[1:]
+        order = "desc"
+    else:
+        sort_by = sort_param or "id"
+
+    fields_param = request.args.get("fields") or request.args.get("fields[books]")
+    fields = [f.strip() for f in fields_param.split(",") if f.strip()] if fields_param else None
+
     db = get_db()
-    # TRUYỀN VÀO: db, page (int), size (int), filters (dict)
-    # NHẬN RA: result (dict chứa data, pagination, _links)
-    result = book_service.get_books_list(db, page, size, filters)
-    
-    # 3. TRẢ ĐẦU RA CHO CLIENT (HTTP)
+
+    # 2. Xử lý phân trang
+    if cursor is not None:
+        result = book_service.get_books_cursor(
+            db, limit=size, cursor=cursor, filters=filters,
+            sort_by=sort_by, order=order, fields=fields
+        )
+    else:
+        result = book_service.get_books_list(
+            db, page=page, size=size, filters=filters,
+            sort_by=sort_by, order=order, fields=fields
+        )
+
     resp = make_response(jsonify(result), 200)
     resp.headers["Cache-Control"] = "public, max-age=30"
     return resp
 
 @books_bp.get("/<int:book_id>")
 def get_book(book_id):
-    """Lấy chi tiết 1 cuốn sách, có hỗ trợ Conditional Request (ETag)"""
+    """Lấy chi tiết 1 cuốn sách, có hỗ trợ Conditional Request (ETag) và Sparse Fieldsets"""
     db = get_db()
-    
-    # TRUYỀN VÀO: db, book_id (int)
-    # NHẬN RA: book_dict (dict), etag (string)
-    # Nếu lỗi (VD không tìm thấy sách), Service sẽ tự throw NotFoundError, 
-    # Route không cần If/Else để check None nữa.
     book_dict, etag = book_service.get_book_detail(db, book_id)
-    
+
     # Check ETag (If-None-Match)
     if request.headers.get("If-None-Match") == etag:
         resp = make_response("", 304)
         resp.headers["ETag"] = etag
         return resp
-        
+
+    fields_param = request.args.get("fields") or request.args.get("fields[books]")
+    if fields_param:
+        fields = [f.strip() for f in fields_param.split(",") if f.strip()]
+        book_dict = {k: book_dict[k] for k in fields if k in book_dict}
+
     resp = make_response(jsonify(book_dict), 200)
     resp.headers["ETag"] = etag
     resp.headers["Cache-Control"] = "private, must-revalidate"

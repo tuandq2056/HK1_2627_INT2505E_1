@@ -26,6 +26,9 @@ def _build_where(filters: dict):
     if filters.get("author"):
         conditions.append("LOWER(author) = ?")
         params.append(filters["author"].lower())
+    if filters.get("published_year"):
+        conditions.append("published_year = ?")
+        params.append(int(filters["published_year"]))
     if filters.get("q"):
         q = f"%{filters['q'].lower()}%"
         conditions.append("(LOWER(title) LIKE ? OR LOWER(author) LIKE ?)")
@@ -43,13 +46,36 @@ def _build_order_by(sort_by: str, order: str):
 
 def find_books(db: sqlite3.Connection, filters: dict, limit: int, offset: int, sort_by: str = None, order: str = "asc"):
     """
-    Tìm sách theo điều kiện.
+    Tìm sách theo điều kiện (Offset pagination).
     Trả về list các dictionary chứa thông tin sách.
     """
     where_clause, params = _build_where(filters)
     sort_query = _build_order_by(sort_by, order)
     query = f"SELECT * FROM books {where_clause} {sort_query} LIMIT ? OFFSET ?"
     return db.execute(query, params + [limit, offset]).fetchall()
+
+def find_books_cursor(db: sqlite3.Connection, filters: dict, limit: int, cursor_id: int = None, sort_by: str = "id", order: str = "asc"):
+    """
+    Tìm sách dùng Keyset/Cursor pagination (lấy limit + 1 để biết has_more).
+    """
+    where_clause, params = _build_where(filters)
+    direction = "DESC" if (order or "").lower() == "desc" else "ASC"
+    op = "<" if direction == "DESC" else ">"
+
+    cursor_params = []
+    if cursor_id is not None:
+        cursor_cond = f"id {op} ?"
+        cursor_params = [cursor_id]
+        where_clause = f"{where_clause} AND {cursor_cond}" if where_clause else f"WHERE {cursor_cond}"
+
+    sort_query = _build_order_by(sort_by, order)
+    if not sort_query:
+        sort_query = f"ORDER BY id {direction}"
+    elif sort_by != "id":
+        sort_query = f"{sort_query}, id {direction}"
+
+    query = f"SELECT * FROM books {where_clause} {sort_query} LIMIT ?"
+    return db.execute(query, params + cursor_params + [limit + 1]).fetchall()
     
 
 def count_books(db: sqlite3.Connection, filters: dict):

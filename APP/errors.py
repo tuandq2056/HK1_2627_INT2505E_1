@@ -13,6 +13,7 @@ class ProblemError(Exception):
             "detail": self.detail,
             "status": self.status,
             "instance": self.instance or req_path,
+            "error": self.detail,
         }
 
 class NotFoundError(Exception):
