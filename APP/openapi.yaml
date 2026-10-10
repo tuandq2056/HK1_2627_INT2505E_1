@@ -1,0 +1,372 @@
+openapi: 3.0.3
+info:
+  title: Book Management API
+  description: |
+    RESTful API quản lý danh mục sách với hỗ trợ HATEOAS, Conditional Requests (ETag / If-Match),
+    Sparse Fieldsets, Dual Pagination (Offset & Cursor) và chuẩn lỗi RFC 7807.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5000
+    description: Local Development Server
+
+tags:
+  - name: Books
+    description: Các endpoint thao tác với tài nguyên sách
+
+paths:
+  /books:
+    get:
+      tags:
+        - Books
+      summary: Lấy danh sách sách
+      description: |
+        Hỗ trợ phân trang theo Offset (`page`, `size`) hoặc Cursor (`cursor`),
+        tìm kiếm (`q`), lọc (`author`, `published_year`), sắp xếp (`sort`, `order`)
+        và chọn lọc trường hiển thị (`fields`).
+      operationId: listBooks
+      parameters:
+        - name: page
+          in: query
+          description: Số trang (áp dụng cho Offset pagination)
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          description: Số lượng phần tử mỗi trang (alias là limit)
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: cursor
+          in: query
+          description: Token định vị phân trang (base64)
+          required: false
+          schema:
+            type: string
+        - name: author
+          in: query
+          description: Lọc chính xác theo tác giả
+          required: false
+          schema:
+            type: string
+            example: Robert C. Martin
+        - name: published_year
+          in: query
+          description: Lọc theo năm xuất bản
+          required: false
+          schema:
+            type: integer
+            example: 2008
+        - name: q
+          in: query
+          description: Tìm kiếm mờ trong tiêu đề hoặc tác giả
+          required: false
+          schema:
+            type: string
+            example: clean
+        - name: sort
+          in: query
+          description: Tên trường sắp xếp (thêm tiền tố '-' để giảm dần, vd '-published_year')
+          required: false
+          schema:
+            type: string
+            example: -published_year
+        - name: order
+          in: query
+          description: Thứ tự sắp xếp
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - $ref: '#/components/parameters/FieldsQueryParam'
+      responses:
+        '200':
+          description: Thành công
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                example: public, max-age=30
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookListResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+
+    post:
+      tags:
+        - Books
+      summary: Tạo mới sách
+      description: Thêm một cuốn sách mới vào cơ sở dữ liệu.
+      operationId: createBook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+      responses:
+        '201':
+          description: Tạo sách thành công
+          headers:
+            Location:
+              description: URI của cuốn sách mới tạo
+              schema:
+                type: string
+                example: /books/1
+            ETag:
+              description: Hash MD5 nội dung sách dùng cho conditional update
+              schema:
+                type: string
+                example: 5d41402abc4b2a76b9719d911017c592
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+
+  /books/{book_id}:
+    parameters:
+      - $ref: '#/components/parameters/BookIdParam'
+
+    get:
+      tags:
+        - Books
+      summary: Lấy chi tiết sách
+      description: Hỗ trợ Conditional Request qua header If-None-Match và lọc trường qua param fields.
+      operationId: getBookById
+      parameters:
+        - name: If-None-Match
+          in: header
+          description: ETag của sách được lưu ở phía client
+          required: false
+          schema:
+            type: string
+            example: 5d41402abc4b2a76b9719d911017c592
+        - $ref: '#/components/parameters/FieldsQueryParam'
+      responses:
+        '200':
+          description: Trả về thông tin chi tiết sách
+          headers:
+            ETag:
+              schema:
+                type: string
+                example: 5d41402abc4b2a76b9719d911017c592
+            Cache-Control:
+              schema:
+                type: string
+                example: private, must-revalidate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '304':
+          description: Not Modified - Dữ liệu chưa thay đổi so với ETag client cung cấp
+          headers:
+            ETag:
+              schema:
+                type: string
+                example: 5d41402abc4b2a76b9719d911017c592
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+    put:
+      tags:
+        - Books
+      summary: Cập nhật sách
+      description: |
+        Cập nhật thông tin sách. **Bắt buộc** gửi kèm header `If-Match` để kiểm soát đồng thời (OCC).
+      operationId: updateBook
+      parameters:
+        - name: If-Match
+          in: header
+          description: ETag hiện tại của bản ghi để kiểm tra xung đột phiên bản
+          required: true
+          schema:
+            type: string
+            example: 5d41402abc4b2a76b9719d911017c592
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+      responses:
+        '200':
+          description: Cập nhật thành công
+          headers:
+            ETag:
+              description: ETag mới sau khi cập nhật
+              schema:
+                type: string
+                example: 7f6a89c4b1a23d4e5f6a7b8c9d0e1f2a
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '412':
+          description: Precondition Failed - ETag không khớp (dữ liệu đã bị sửa bởi request khác)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '428':
+          description: Precondition Required - Thiếu header If-Match
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Thiếu Header If-Match
+
+    delete:
+      tags:
+        - Books
+      summary: Xóa sách
+      description: Xóa cuốn sách theo ID
+      operationId: deleteBook
+      responses:
+        '204':
+          description: Xóa thành công (không có content trả về)
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+components:
+  parameters:
+    BookIdParam:
+      name: book_id
+      in: path
+      required: true
+      description: ID của cuốn sách
+      schema:
+        type: integer
+        example: 1
+
+    FieldsQueryParam:
+      name: fields
+      in: query
+      required: false
+      description: Danh sách các trường cần lấy, ngăn cách bởi dấu phẩy (Sparse Fieldsets)
+      schema:
+        type: string
+        example: id,title
+
+  schemas:
+    BookInput:
+      type: object
+      required:
+        - title
+        - author
+        - published_year
+      properties:
+        title:
+          type: string
+          example: Clean Architecture
+        author:
+          type: string
+          example: Robert C. Martin
+        published_year:
+          type: integer
+          minimum: 1900
+          example: 2017
+
+    Book:
+      allOf:
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              type: integer
+              example: 1
+        - $ref: '#/components/schemas/BookInput'
+
+    BookListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            size:
+              type: integer
+              example: 20
+            total:
+              type: integer
+              example: 50
+            total_pages:
+              type: integer
+              example: 3
+            has_more:
+              type: boolean
+              example: true
+            next_cursor:
+              type: string
+              nullable: true
+              example: MjA=
+        _links:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              href:
+                type: string
+                example: /books?page=1&size=20
+
+    ProblemDetails:
+      type: object
+      description: Định dạng lỗi chuẩn RFC 7807 (Problem Details)
+      properties:
+        type:
+          type: string
+          example: about:blank
+        title:
+          type: string
+          example: Bad Request
+        status:
+          type: integer
+          example: 400
+        detail:
+          type: string
+          example: published_year phải lớn hơn hoặc bằng 1900.
+        instance:
+          type: string
+          example: /books
+        error:
+          type: string
+          example: published_year phải lớn hơn hoặc bằng 1900.
+
+  responses:
+    400BadRequest:
+      description: Dữ liệu gửi lên không hợp lệ
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+
+    404NotFound:
+      description: Không tìm thấy tài nguyên
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
