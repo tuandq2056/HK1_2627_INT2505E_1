@@ -1,0 +1,258 @@
+openapi: 3.0.0
+info:
+  title: Swagger Petstore
+  description: Store
+  version: 1.0.0
+servers:
+- url: /
+paths:
+  /pets:
+    get:
+      tags:
+      - Pets
+      summary: list pets
+      operationId: listPets
+      parameters:
+      - name: limit
+        in: query
+        description: LIMIT
+        required: false
+        schema:
+          type: integer
+          default: 20
+      - name: status
+        in: query
+        description: STATUS
+        required: false
+        schema:
+          type: string
+          enum:
+          - available
+          - pending
+          - sold
+          default: available
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pet"
+    post:
+      tags:
+      - Pets
+      summary: post new pet
+      operationId: createPet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetBase"
+        required: true
+      responses:
+        "201":
+          $ref: "#/components/responses/SuccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+      security:
+      - BearerAuth: []
+  /pets/{petId}:
+    get:
+      tags:
+      - Pets
+      summary: Check  only  a pet
+      operationId: getPetById
+      parameters:
+      - name: petId
+        in: path
+        description: ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+          example: 101
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+    delete:
+      tags:
+      - Pets
+      summary: delete pet
+      operationId: deletePet
+      parameters:
+      - name: petId
+        in: path
+        description: ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+          example: 101
+      responses:
+        "204":
+          $ref: "#/components/responses/SuccessResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+      security:
+      - BearerAuth: []
+    patch:
+      tags:
+      - Pets
+      summary: pathch pet
+      operationId: updatePetPartially
+      parameters:
+      - name: petId
+        in: path
+        description: ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+          example: 101
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetPatchRequest"
+        required: true
+      responses:
+        "200":
+          $ref: "#/components/responses/SuccessResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+      security:
+      - BearerAuth: []
+components:
+  schemas:
+    PetBase:
+      required:
+      - name
+      - status
+      type: object
+      properties:
+        name:
+          type: string
+          example: Dodge
+        category:
+          type: string
+          example: Dodge
+        status:
+          type: string
+          example: available
+          enum:
+          - available
+          - pending
+          - sold
+    PetPatchRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Dodge
+        status:
+          type: string
+          example: pending
+          enum:
+          - available
+          - pending
+          - sold
+    Pet:
+      allOf:
+      - $ref: "#/components/schemas/PetBase"
+      - required:
+        - id
+        type: object
+        properties:
+          id:
+            type: integer
+            format: int64
+            example: 101
+          createdAt:
+            type: string
+            format: date-time
+            example: 2026-10-07T11:00:00Z
+    ErrorModel:
+      required:
+      - code
+      - message
+      type: object
+      properties:
+        code:
+          type: string
+          example: UNAUTHORIZED
+        message:
+          type: string
+          example: need auth
+  responses:
+    SuccessResponse:
+      description: success  in  actions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Pet"
+    UnauthorizedError:
+      description: UnauthorizedError
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorModel"
+    NotFoundError:
+      description: NotFoundError
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorModel"
+    BadRequestError:
+      description: BadRequestError
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorModel"
+  parameters:
+    PetIdParam:
+      name: petId
+      in: path
+      description: ID
+      required: true
+      schema:
+        type: integer
+        format: int64
+        example: 101
+    LimitParam:
+      name: limit
+      in: query
+      description: LIMIT
+      required: false
+      schema:
+        type: integer
+        default: 20
+    StatusParam:
+      name: status
+      in: query
+      description: STATUS
+      required: false
+      schema:
+        type: string
+        enum:
+        - available
+        - pending
+        - sold
+        default: available
+  securitySchemes:
+    BearerAuth:
+      type: http
+      description: Format Bearer <YOUR_TOKEN>
+      scheme: bearer
+      bearerFormat: JWT

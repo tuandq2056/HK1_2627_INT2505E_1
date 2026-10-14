@@ -1,0 +1,355 @@
+openapi: 3.0.0
+info:
+  description: Store
+  title: Swagger Petstore
+  version: 1.0.0
+servers:
+- url: /
+paths:
+  /pets:
+    get:
+      operationId: list_pets
+      parameters:
+      - description: LIMIT
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          type: integer
+        style: form
+      - description: STATUS
+        explode: true
+        in: query
+        name: status
+        required: false
+        schema:
+          default: available
+          enum:
+          - available
+          - pending
+          - sold
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: "#/components/schemas/Pet"
+                type: array
+          description: Success
+      summary: list pets
+      tags:
+      - Pets
+      x-openapi-router-controller: openapi_server.controllers.pets_controller
+    post:
+      operationId: create_pet
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetBase"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+          description: success  in  actions
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: BadRequestError
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: UnauthorizedError
+      security:
+      - BearerAuth: []
+      summary: post new pet
+      tags:
+      - Pets
+      x-openapi-router-controller: openapi_server.controllers.pets_controller
+  /pets/{petId}:
+    delete:
+      operationId: delete_pet
+      parameters:
+      - description: ID
+        explode: false
+        in: path
+        name: petId
+        required: true
+        schema:
+          example: 101
+          format: int64
+          type: integer
+        style: simple
+      responses:
+        "204":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+          description: success  in  actions
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: UnauthorizedError
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: NotFoundError
+      security:
+      - BearerAuth: []
+      summary: delete pet
+      tags:
+      - Pets
+      x-openapi-router-controller: openapi_server.controllers.pets_controller
+    get:
+      operationId: get_pet_by_id
+      parameters:
+      - description: ID
+        explode: false
+        in: path
+        name: petId
+        required: true
+        schema:
+          example: 101
+          format: int64
+          type: integer
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+          description: success  in  actions
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: NotFoundError
+      summary: Check  only  a pet
+      tags:
+      - Pets
+      x-openapi-router-controller: openapi_server.controllers.pets_controller
+    patch:
+      operationId: update_pet_partially
+      parameters:
+      - description: ID
+        explode: false
+        in: path
+        name: petId
+        required: true
+        schema:
+          example: 101
+          format: int64
+          type: integer
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PetPatchRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+          description: success  in  actions
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: BadRequestError
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: UnauthorizedError
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorModel"
+          description: NotFoundError
+      security:
+      - BearerAuth: []
+      summary: pathch pet
+      tags:
+      - Pets
+      x-openapi-router-controller: openapi_server.controllers.pets_controller
+components:
+  parameters:
+    PetIdParam:
+      description: ID
+      explode: false
+      in: path
+      name: petId
+      required: true
+      schema:
+        example: 101
+        format: int64
+        type: integer
+      style: simple
+    LimitParam:
+      description: LIMIT
+      explode: true
+      in: query
+      name: limit
+      required: false
+      schema:
+        default: 20
+        type: integer
+      style: form
+    StatusParam:
+      description: STATUS
+      explode: true
+      in: query
+      name: status
+      required: false
+      schema:
+        default: available
+        enum:
+        - available
+        - pending
+        - sold
+        type: string
+      style: form
+  responses:
+    SuccessResponse:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Pet"
+      description: success  in  actions
+    UnauthorizedError:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorModel"
+      description: UnauthorizedError
+    NotFoundError:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorModel"
+      description: NotFoundError
+    BadRequestError:
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorModel"
+      description: BadRequestError
+  schemas:
+    PetBase:
+      example:
+        name: Dodge
+        category: Dodge
+        status: available
+      properties:
+        name:
+          example: Dodge
+          title: name
+          type: string
+        category:
+          example: Dodge
+          title: category
+          type: string
+        status:
+          enum:
+          - available
+          - pending
+          - sold
+          example: available
+          title: status
+          type: string
+      required:
+      - name
+      - status
+      title: PetBase
+      type: object
+    PetPatchRequest:
+      example:
+        name: Dodge
+        status: pending
+      properties:
+        name:
+          example: Dodge
+          title: name
+          type: string
+        status:
+          enum:
+          - available
+          - pending
+          - sold
+          example: pending
+          title: status
+          type: string
+      title: PetPatchRequest
+      type: object
+    Pet:
+      allOf:
+      - $ref: "#/components/schemas/PetBase"
+      - properties:
+          id:
+            example: 101
+            format: int64
+            type: integer
+          createdAt:
+            example: 2026-10-07T11:00:00Z
+            format: date-time
+            type: string
+        required:
+        - id
+        type: object
+      example:
+        name: Dodge
+        category: Dodge
+        status: available
+        id: 101
+        createdAt: 2026-10-07T11:00:00Z
+      title: Pet
+    ErrorModel:
+      example:
+        code: UNAUTHORIZED
+        message: need auth
+      properties:
+        code:
+          example: UNAUTHORIZED
+          title: code
+          type: string
+        message:
+          example: need auth
+          title: message
+          type: string
+      required:
+      - code
+      - message
+      title: ErrorModel
+      type: object
+  securitySchemes:
+    BearerAuth:
+      bearerFormat: JWT
+      description: Format Bearer <YOUR_TOKEN>
+      scheme: bearer
+      type: http
+      x-bearerInfoFunc: openapi_server.controllers.security_controller.info_from_BearerAuth
