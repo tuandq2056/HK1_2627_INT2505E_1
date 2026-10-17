@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BookInputSchema",
+  "type": "object",
+  "required": ["title"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Tên sách, không được để trống"
+    },
+    "isbn": {
+      "type": "string",
+      "pattern": "^[0-9]{10}([0-9]{3})?$",
+      "description": "Mã ISBN 10 hoặc 13 chữ số"
+    },
+    "price_vnd": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Giá sách tính theo VNĐ"
+    },
+    "stock": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Số lượng tồn kho"
+    }
+  },
+  "additionalProperties": false
+}
