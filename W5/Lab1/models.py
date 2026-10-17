@@ -12,7 +12,11 @@ class Author(db.Model):
     bio = db.Column(db.Text, nullable=True)
 
     def __init__(self, name: str = "", bio: str | None = None, **kwargs):
-        super().__init__(name=name, bio=bio, **kwargs)
+        super().__init__()
+        self.name = name
+        self.bio = bio
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     def to_dict(self):
         return {
@@ -42,13 +46,13 @@ class Book(db.Model):
         stock: int = 0,
         **kwargs,
     ):
-        super().__init__(
-            title=title,
-            isbn=isbn,
-            price_vnd=price_vnd,
-            stock=stock,
-            **kwargs,
-        )
+        super().__init__()
+        self.title = title
+        self.isbn = isbn
+        self.price_vnd = price_vnd
+        self.stock = stock
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
     def to_dict(self):
         """

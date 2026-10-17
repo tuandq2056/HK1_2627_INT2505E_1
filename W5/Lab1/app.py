@@ -4,11 +4,14 @@ from models import db, Book
 from routes.books import books_bp
 
 
-def create_app():
+def create_app(test_config=None):
     app = Flask(__name__)
     db_path = Path(__file__).resolve().parent / "bookstore.db"
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    if test_config:
+        app.config.update(test_config)
 
     # Khởi tạo db với Flask app
     db.init_app(app)
@@ -27,10 +30,11 @@ def create_app():
             }
         })
 
-    # Tạo bảng và nạp 2 cuốn sách mẫu nếu DB mới tạo
-    with app.app_context():
-        db.create_all()
-        if not Book.query.first():
+    # Tạo bảng và nạp 2 cuốn sách mẫu nếu DB mới tạo (chỉ khi không phải TESTING)
+    if not app.config.get("TESTING"):
+        with app.app_context():
+            db.create_all()
+            if not Book.query.first():
             book1 = Book(
                 title="Clean Code",
                 isbn="9780132350884",
