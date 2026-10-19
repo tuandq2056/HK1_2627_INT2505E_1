@@ -4,7 +4,7 @@ db = SQLAlchemy()
 
 
 class Author(db.Model):
-    """Entity Author (Slide 16)"""
+    """Author entity representing book authors."""
     __tablename__ = "authors"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -12,6 +12,7 @@ class Author(db.Model):
     bio = db.Column(db.Text, nullable=True)
 
     def __init__(self, name: str = "", bio: str | None = None, **kwargs):
+        """Initialize Author instance."""
         super().__init__()
         self.name = name
         self.bio = bio
@@ -19,6 +20,7 @@ class Author(db.Model):
             setattr(self, key, value)
 
     def to_dict(self):
+        """Serialize Author to dictionary representation."""
         return {
             "id": f"author_{self.id}",
             "raw_id": self.id,
@@ -28,7 +30,7 @@ class Author(db.Model):
 
 
 class Book(db.Model):
-    """Entity Book - Trọng tâm của Lab 1 (Slide 14, 16)"""
+    """Book entity representing bookstore inventory."""
     __tablename__ = "books"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -37,7 +39,6 @@ class Book(db.Model):
     price_vnd = db.Column(db.Integer, default=0)
     stock = db.Column(db.Integer, default=0)
 
-    # Constructor tường minh giúp Pylance/VS Code nhận diện tham số và hỗ trợ autocomplete
     def __init__(
         self,
         title: str = "",
@@ -46,6 +47,7 @@ class Book(db.Model):
         stock: int = 0,
         **kwargs,
     ):
+        """Initialize Book instance."""
         super().__init__()
         self.title = title
         self.isbn = isbn
@@ -55,10 +57,7 @@ class Book(db.Model):
             setattr(self, key, value)
 
     def to_dict(self):
-        """
-        API Resource Representation (Mục tiêu 1 của Lab 1 - Slide 13, 14):
-        Tách biệt DB Schema với dữ liệu JSON trả về cho Client.
-        """
+        """Serialize Book entity to REST API resource representation."""
         return {
             "id": f"book_{self.id}",
             "raw_id": self.id,
