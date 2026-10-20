@@ -1,0 +1,106 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Book",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "readOnly": true
+        },
+        "isbn": {
+            "type": "string"
+        },
+        "title": {
+            "type": "string",
+            "minLength": 1
+        },
+        "author": {
+            "type": "string"
+        },
+        "categoryId": {
+            "type": "integer"
+        },
+        "quantity": {
+            "type": "integer",
+            "minimum": 0
+        }
+    },
+    "required": [
+        "isbn",
+        "title",
+        "author",
+        "categoryId",
+        "quantity"
+    ]
+}
+
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "User",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "readOnly": true
+        },
+        "name": {
+            "type": "string",
+            "minLength": 1
+        },
+        "email": {
+            "type": "string",
+            "format": "email"
+        },
+        "role": {
+            "type": "string",
+            "enum": [
+                "member",
+                "librarian"
+            ],
+            "default": "member"
+        }
+    },
+    "required": [
+        "name",
+        "email"
+    ]
+};
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Loan",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "readOnly": true
+        },
+        "userId": {
+            "type": "integer"
+        },
+        "bookId": {
+            "type": "integer"
+        },
+        "borrowedAt": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+        },
+        "dueAt": {
+            "type": "string",
+            "format": "date",
+            "readOnly": true
+        },
+        "returnedAt": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date",
+            "readOnly": true
+        }
+    },
+    "required": [
+        "userId",
+        "bookId"
+    ]
+}
