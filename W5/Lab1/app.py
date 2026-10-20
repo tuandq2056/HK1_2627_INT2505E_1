@@ -21,7 +21,7 @@ def create_app(test_config=None):
     def index():
         """Root endpoint returning service status and route map."""
         return jsonify({
-            "message": "Welcome to Bookstore API - Lab 1 & 2",
+            "message": "Welcome to Bookstore API - Homework 2",
             "endpoints": {
                 "list_books": "GET /api/v1/books",
                 "create_book": "POST /api/v1/books",
@@ -34,10 +34,13 @@ def create_app(test_config=None):
             db.create_all()
             if not Book.query.first():
                 sample_books = [
-                    Book(title="Clean Code", isbn="9780132350884", price_vnd=450000, stock=10),
-                    Book(title="The Pragmatic Programmer", isbn="9780201616224", price_vnd=520000, stock=5),
-                    Book(title="Refactoring", isbn="9780201485677", price_vnd=480000, stock=8),
-                    Book(title="Domain-Driven Design", isbn="9780321125217", price_vnd=550000, stock=3),
+                    Book(title="Clean Code", isbn="9780132350884", genre="tech", price_vnd=450000, stock=10),
+                    Book(title="The Pragmatic Programmer", isbn="9780201616224", genre="tech", price_vnd=520000, stock=5),
+                    Book(title="Refactoring", isbn="9780201485677", genre="tech", price_vnd=480000, stock=8),
+                    Book(title="Domain-Driven Design", isbn="9780321125217", genre="tech", price_vnd=550000, stock=3),
+                    Book(title="1984", isbn="9780451524935", genre="fiction", price_vnd=150000, stock=20),
+                    Book(title="Brave New World", isbn="9780060850524", genre="fiction", price_vnd=180000, stock=12),
+                    Book(title="Dune", isbn="9780441172719", genre="sci-fi", price_vnd=320000, stock=15),
                 ]
                 db.session.add_all(sample_books)
                 db.session.commit()

@@ -36,6 +36,7 @@ class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     isbn = db.Column(db.String(13), unique=True, nullable=True)
+    genre = db.Column(db.String(50), default="tech")
     price_vnd = db.Column(db.Integer, default=0)
     stock = db.Column(db.Integer, default=0)
 
@@ -43,6 +44,7 @@ class Book(db.Model):
         self,
         title: str = "",
         isbn: str | None = None,
+        genre: str = "tech",
         price_vnd: int = 0,
         stock: int = 0,
         **kwargs,
@@ -51,6 +53,7 @@ class Book(db.Model):
         super().__init__()
         self.title = title
         self.isbn = isbn
+        self.genre = genre
         self.price_vnd = price_vnd
         self.stock = stock
         for key, value in kwargs.items():
@@ -63,6 +66,7 @@ class Book(db.Model):
             "raw_id": self.id,
             "title": self.title,
             "isbn": self.isbn,
+            "genre": self.genre,
             "price": {
                 "amount": self.price_vnd,
                 "currency": "VND",
