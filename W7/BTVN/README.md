@@ -54,3 +54,19 @@ Tách riêng để DB chết thì orchestrator chỉ ngừng gửi traffic (read
 `Dockerfile` có `HEALTHCHECK` gọi `/healthz` → `docker ps` hiện trạng thái `healthy`.
 
 Kiểm tra: `docker compose stop db` → `/healthz` vẫn 200, `/ready` trả 503; `docker compose start db` → `/ready` về 200.
+
+## BT5 — pytest
+
+```bash
+pip install -r requirements-dev.txt
+pytest -q
+```
+
+- `tests/conftest.py`: mỗi test tạo app mới với `TestConfig` (SQLite in-memory); fixture `count_queries` đếm số câu SQL qua event `before_cursor_execute`.
+- `tests/test_products.py`: POST (201 / 409 sku trùng / 422 / 400 JSON hỏng), GET phân trang + ẩn archived, 404, reserve.
+- `tests/test_orders.py`:
+  - POST order nhiều product, trừ tồn kho; hết hàng → 409 và rollback toàn bộ.
+  - GET `/api/v1/orders` có eager loading: **số query giữ nguyên (≤ 3) dù 2 hay 20 order** → không N+1.
+    Nếu bỏ `selectinload/joinedload` thì test này fail.
+  - Test đối chứng lazy load cho thấy số query tăng theo số order.
+- `tests/test_health.py`: `/healthz` không chạy query nào, `/ready` kiểm tra DB.
