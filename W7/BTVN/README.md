@@ -29,3 +29,16 @@ POST /api/v1/orders
 ```
 
 Eager loading: `selectinload(Order.items).joinedload(OrderItem.product)` — số query cố định, không bị N+1.
+
+## BT3 — Docker
+
+```bash
+docker compose up -d --build      # Postgres 16 + API (gunicorn) ở http://localhost:5000
+docker compose logs -f api
+docker compose down               # thêm -v để xoá luôn dữ liệu Postgres
+```
+
+- `Dockerfile` multi-stage: stage builder cài package vào `/opt/venv`, stage runtime chỉ copy venv + `wsgi.py` + `migrations/`, chạy bằng user `app` (không root).
+- `docker-entrypoint.sh`: chạy `flask db upgrade` rồi `exec gunicorn` → máy mới chỉ cần `docker compose up`, không phải tạo bảng tay.
+- `docker-compose.yml`: API chờ DB `service_healthy` (`pg_isready`) mới khởi động; cấu hình qua biến môi trường (`DB_URL`, `SECRET_KEY`, `LOG_LEVEL`, `API_PORT` để đổi port nếu 5000 bị chiếm).
+- `.gitattributes` giữ LF cho file `.sh` để clone trên Windows vẫn chạy được.
