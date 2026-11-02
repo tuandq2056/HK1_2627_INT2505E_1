@@ -42,3 +42,15 @@ docker compose down               # thêm -v để xoá luôn dữ liệu Postgr
 - `docker-entrypoint.sh`: chạy `flask db upgrade` rồi `exec gunicorn` → máy mới chỉ cần `docker compose up`, không phải tạo bảng tay.
 - `docker-compose.yml`: API chờ DB `service_healthy` (`pg_isready`) mới khởi động; cấu hình qua biến môi trường (`DB_URL`, `SECRET_KEY`, `LOG_LEVEL`, `API_PORT` để đổi port nếu 5000 bị chiếm).
 - `.gitattributes` giữ LF cho file `.sh` để clone trên Windows vẫn chạy được.
+
+## BT4 — Health check (`src/product_api/api/health.py`)
+
+| Endpoint | Loại | Kiểm tra | Kết quả |
+|---|---|---|---|
+| `GET /healthz` | Liveness | Không chạm DB | `200 {"status": "ok"}` khi process còn chạy |
+| `GET /ready` | Readiness | `SELECT 1` tới DB | `200` nếu DB ok, `503 {"status": "degraded"}` nếu DB lỗi |
+
+Tách riêng để DB chết thì orchestrator chỉ ngừng gửi traffic (readiness fail), không restart API vô ích (liveness vẫn ok).
+`Dockerfile` có `HEALTHCHECK` gọi `/healthz` → `docker ps` hiện trạng thái `healthy`.
+
+Kiểm tra: `docker compose stop db` → `/healthz` vẫn 200, `/ready` trả 503; `docker compose start db` → `/ready` về 200.

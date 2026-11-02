@@ -27,4 +27,8 @@ ENV PATH=/opt/venv/bin:$PATH \
 
 USER app
 EXPOSE 5000
+
+# Docker healthcheck dùng liveness probe (slim image không có curl → dùng python)
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/healthz', timeout=2).status == 200 else 1)"
 ENTRYPOINT ["sh", "./docker-entrypoint.sh"]

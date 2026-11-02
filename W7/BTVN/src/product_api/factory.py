@@ -2,6 +2,7 @@ import os
 
 from flask import Flask
 
+from .api.health import health_bp
 from .api.orders import orders_bp
 from .api.products import products_bp
 from .config import DefaultConfig
@@ -21,6 +22,7 @@ def create_app(config=None):
     configure_logging(app)
     register_error_handlers(app)
 
+    app.register_blueprint(health_bp)
     app.register_blueprint(products_bp)
     app.register_blueprint(orders_bp)
     return app
