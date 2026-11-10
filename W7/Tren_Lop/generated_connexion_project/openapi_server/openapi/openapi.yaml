@@ -1,0 +1,100 @@
+openapi: 3.0.3
+info:
+  title: Product API
+  version: 1.0.0
+servers:
+- url: /
+paths:
+  /products:
+    get:
+      operationId: products_list_products
+      responses:
+        "200":
+          description: OK
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+    post:
+      operationId: products_create_product
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductIn"
+        required: true
+      responses:
+        "201":
+          description: Created
+        "422":
+          description: Validation
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+  /products/{id}:
+    delete:
+      operationId: products_delete_product
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        style: simple
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+    get:
+      operationId: products_get_product
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        style: simple
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+    put:
+      operationId: products_update_product
+      parameters:
+      - explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductIn"
+        required: true
+      responses:
+        "200":
+          description: OK
+        "404":
+          description: Not Found
+        "422":
+          description: Validation
+      x-openapi-router-controller: openapi_server.controllers.default_controller
+components:
+  schemas:
+    ProductIn:
+      example:
+        name: name
+        price: 0.8008281904610115
+      properties:
+        name:
+          title: name
+          type: string
+        price:
+          title: price
+          type: number
+      title: ProductIn
+      type: object
