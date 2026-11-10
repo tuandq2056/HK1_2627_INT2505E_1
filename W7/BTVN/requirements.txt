@@ -1,7 +1,7 @@
-flask>=3.0
-flask-sqlalchemy>=3.1
-flask-migrate>=4.0
-sqlalchemy>=2.0
-marshmallow>=3.20
-gunicorn>=22.0
-psycopg[binary]>=3.1
+flask
+flask-sqlalchemy
+flask-migrate
+marshmallow
+gunicorn
+psycopg[binary]
+pytest

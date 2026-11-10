@@ -1,34 +1,19 @@
-# ─── stage 1: builder ───
-FROM python:3.12-slim AS builder
-WORKDIR /build
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1
-RUN python -m venv /opt/venv
-ENV PATH=/opt/venv/bin:$PATH
-COPY pyproject.toml ./
-COPY src ./src
-RUN pip install .
-
-# ─── stage 2: runtime ───
 FROM python:3.12-slim
+
 WORKDIR /app
-RUN groupadd -r app && useradd -r -g app -d /app app && chown app:app /app
 
-# Chỉ copy venv đã cài package — không mang theo pip cache / build tool
-COPY --from=builder /opt/venv /opt/venv
-COPY --chown=app:app wsgi.py gunicorn.conf.py docker-entrypoint.sh ./
-COPY --chown=app:app migrations ./migrations
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-ENV PATH=/opt/venv/bin:$PATH \
-    PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    FLASK_APP=wsgi:app \
-    APP_CONFIG=product_api.config.ProductionConfig
+COPY . .
 
-USER app
+ENV FLASK_APP=app
+
 EXPOSE 5000
 
-# Docker healthcheck dùng liveness probe (slim image không có curl → dùng python)
-HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5000/healthz', timeout=2).status == 200 else 1)"
-ENTRYPOINT ["sh", "./docker-entrypoint.sh"]
+# BT4: docker tự gọi /healthz để biết container còn sống không
+HEALTHCHECK --interval=10s --timeout=3s \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/healthz')"
+
+# Tạo bảng (migration) rồi chạy server
+CMD flask db upgrade && gunicorn -b 0.0.0.0:5000 -w 2 "app:create_app()"

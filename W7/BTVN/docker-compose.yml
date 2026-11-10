@@ -8,7 +8,6 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U app -d appdb"]
       interval: 5s
-      timeout: 3s
       retries: 10
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -17,15 +16,11 @@ services:
     build: .
     environment:
       DB_URL: postgresql+psycopg://app:devpw@db:5432/appdb
-      APP_CONFIG: product_api.config.ProductionConfig
-      SECRET_KEY: ${SECRET_KEY:-dev-change-me}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_healthy   # đợi Postgres sẵn sàng rồi mới chạy API
     ports:
-      - "${API_PORT:-5000}:5000"
-    restart: unless-stopped
+      - "5000:5000"
 
 volumes:
-  pgdata: {}
+  pgdata:

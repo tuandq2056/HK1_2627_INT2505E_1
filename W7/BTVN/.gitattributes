@@ -1,2 +1,0 @@
-# Giữ LF cho script chạy trong container (tránh lỗi khi clone trên Windows)
-*.sh text eol=lf

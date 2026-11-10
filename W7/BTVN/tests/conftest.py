@@ -1,20 +1,17 @@
-from contextlib import contextmanager
-
 import pytest
 from sqlalchemy import event
 
-from product_api.config import TestConfig
-from product_api.extensions import db
-from product_api.factory import create_app
+from app import create_app
+from extensions import db
 
 
 @pytest.fixture
 def app():
-    app = create_app(TestConfig)  # SQLite in-memory, mỗi test một DB mới
+    # mỗi test dùng 1 DB SQLite trong RAM mới
+    app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:"})
     with app.app_context():
         db.create_all()
-    yield app
-    with app.app_context():
+        yield app
         db.session.remove()
         db.drop_all()
 
@@ -25,48 +22,28 @@ def client(app):
 
 
 @pytest.fixture
-def count_queries(app):
-    """Đếm số câu SQL chạy trong khối `with` — dùng để phát hiện N+1.
+def queries(app):
+    # Ghi lại mọi câu SQL chạy trong test -> dùng để kiểm tra N+1
+    sql_list = []
 
-        with count_queries() as q:
-            client.get(...)
-        assert q.count <= 3
-    """
+    def on_execute(conn, cursor, statement, params, context, executemany):
+        sql_list.append(statement)
 
-    class Counter:
-        def __init__(self):
-            self.count = 0
-            self.statements = []
-
-    @contextmanager
-    def _count():
-        counter = Counter()
-
-        def _on_execute(conn, cursor, statement, params, context, executemany):
-            counter.count += 1
-            counter.statements.append(statement)
-
-        with app.app_context():
-            engine = db.engine
-        event.listen(engine, "before_cursor_execute", _on_execute)
-        try:
-            yield counter
-        finally:
-            event.remove(engine, "before_cursor_execute", _on_execute)
-
-    return _count
+    event.listen(db.engine, "before_cursor_execute", on_execute)
+    yield sql_list
+    event.remove(db.engine, "before_cursor_execute", on_execute)
 
 
-@pytest.fixture
-def make_product(client):
-    def _make(sku, price_cents=100, qty_in_stock=10, name=None):
-        resp = client.post("/api/v1/products", json={
-            "sku": sku,
-            "name": name or f"Product {sku}",
-            "price_cents": price_cents,
-            "qty_in_stock": qty_in_stock,
-        })
-        assert resp.status_code == 201, resp.get_json()
-        return resp.get_json()
+def create_product(client, sku, price_cents=100, qty_in_stock=10):
+    resp = client.post("/api/v1/products", json={
+        "sku": sku,
+        "name": f"Product {sku}",
+        "price_cents": price_cents,
+        "qty_in_stock": qty_in_stock,
+    })
+    assert resp.status_code == 201
+    return resp.get_json()
 
-    return _make
+
+def create_order(client, items, customer="An"):
+    return client.post("/api/v1/orders", json={"customer": customer, "items": items})

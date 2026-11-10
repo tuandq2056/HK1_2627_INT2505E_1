@@ -1,9 +1,6 @@
-**/__pycache__
-**/*.py[cod]
-**/*.db
-.env
+__pycache__
+*.db
+instance
 .venv
 venv
-.pytest_cache
-instance
 tests
