@@ -1,0 +1,30 @@
+extends: ["spectral:oas"]
+
+rules:
+  # Noise from the default ruleset, not part of the 3 lab defects.
+  info-contact: off
+  operation-description: off
+  operation-tags: off
+
+  # Defect 1: GET /books has no operationId (built-in rule, raise to error).
+  operation-operationId: error
+
+  # Defect 2: HTTP 204 must not declare a response body.
+  no-body-on-204:
+    description: A 204 response must not have `content`.
+    severity: error
+    given: "$.paths[*][*].responses['204']"
+    then:
+      field: content
+      function: falsy
+
+  # Defect 3: Book.year must be an integer (matches the Python model).
+  book-year-must-be-integer:
+    description: Book.year must have type integer.
+    severity: error
+    given: "$.components.schemas.Book.properties.year"
+    then:
+      field: type
+      function: enumeration
+      functionOptions:
+        values: [integer]
