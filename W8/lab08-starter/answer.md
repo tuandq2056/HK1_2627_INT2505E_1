@@ -21,3 +21,8 @@ sau khi sửa :
 Kết quả lab3 :
 ![alt text](image-3.png)
 ![alt text](image-4.png)
+
+Kết quả lab 4 , tương ứng với A,B và C theo thứ tự :
+![alt text](image-5.png)
+![alt text](image-7.png)
+![alt text](image-6.png)
